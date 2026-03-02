@@ -1,7 +1,6 @@
-import { ethers } from "./ethers-6.esm.min.js"; // ou via npm
-import CONTRACT_ABI from "./TaskManager.json" assert { type: "json" };
-
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // remplace par l'adresse du contrat déployé
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.7.1/dist/ethers.min.js";
+import { CONTRACT_ABI } from "./abi.js";
+import { CONTRACT_ADDRESS } from "./contract-config.js";
 
 let provider, signer, contract;
 const statusEl = document.getElementById("status");
@@ -11,7 +10,7 @@ async function init() {
         provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI.abi, signer);
+        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
         console.log("Contrat connecté :", contract.target);
         await loadTasks();
     } else {
