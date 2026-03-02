@@ -6,16 +6,25 @@ let provider, signer, contract;
 const statusEl = document.getElementById("status");
 
 async function init() {
-    if (window.ethereum) {
+    // si MetaMask est installé et connecté, on l'utilise
+    if (window.ethereum && window.ethereum.isMetaMask) {
         provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
+        try {
+            await provider.send("eth_requestAccounts", []); // demande l'accès au compte
+        } catch (e) {
+            console.warn("Accès MetaMask refusé, passage au provider local");
+        }
         signer = await provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        console.log("Contrat connecté :", contract.target);
-        await loadTasks();
     } else {
-        alert("Installe MetaMask ou utilise un provider local !");
+        // pas de MetaMask : on se rabat sur un provider JSON-RPC local
+        console.log("MetaMask non détecté, utilisation du provider local http://127.0.0.1:8545");
+        provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+        signer = provider.getSigner(); // renvoie le premier compte du nœud Hardhat
     }
+
+    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    console.log("Contrat connecté :", contract.target);
+    await loadTasks();
 }
 
 async function loadTasks() {
