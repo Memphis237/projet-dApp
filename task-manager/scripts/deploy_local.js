@@ -1,28 +1,28 @@
-const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
 async function main() {
-    const TaskManager = await hre.ethers.getContractFactory("TaskManager");
-    const taskManager = await TaskManager.deploy();
+  const TaskManager = await ethers.getContractFactory("TaskManager");
+  const taskManager = await TaskManager.deploy();
+  await taskManager.waitForDeployment();
+  // ethers v6 provides getAddress() helper
+  const addr = await taskManager.getAddress();
+  console.log("TaskManager deployed to:", addr);
 
-    console.log("\n✅ TaskManager deployed with success!");
-    console.log("📍 Contract Address:", taskManager.target);
-
-    // Écrire l'adresse dans contract-config.js
-    const configPath = path.join(__dirname, "../frontend/contract-config.js");
-    const configContent = `// Auto-updated by deploy script
-export const CONTRACT_ADDRESS = "${taskManager.target}";
-`;
-    
-    fs.writeFileSync(configPath, configContent);
-    console.log("✅ contract-config.js updated!");
-    console.log("\nYou can now open http://localhost:3000 in your browser!");
+  // Sauvegarde l'adresse du contrat
+  fs.writeFileSync(
+    path.join(__dirname, "../frontend/config.js"),
+    `const CONTRACT_ADDRESS = "${addr}";`
+  );
+  // copie l'ABI dans le dossier frontend pour que le serveur puisse y accéder
+  const artifactSrc = path.join(__dirname, "../artifacts/contracts/TaskManager.sol/TaskManager.json");
+  const artifactDst = path.join(__dirname, "../frontend/TaskManager.json");
+  fs.copyFileSync(artifactSrc, artifactDst);
+  console.log("Artifact copied to frontend");
+  console.log("Config updated!");
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

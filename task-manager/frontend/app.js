@@ -1,82 +1,67 @@
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.7.1/dist/ethers.min.js";
-import { CONTRACT_ABI } from "./abi.js";
-import { CONTRACT_ADDRESS } from "./contract-config.js";
-
-let provider, signer, contract;
-const statusEl = document.getElementById("status");
+const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+let contract;
+let signer;
 
 async function init() {
-    // si MetaMask est installé et connecté, on l'utilise
-    if (window.ethereum && window.ethereum.isMetaMask) {
-        provider = new ethers.BrowserProvider(window.ethereum);
-        try {
-            await provider.send("eth_requestAccounts", []); // demande l'accès au compte
-        } catch (e) {
-            console.warn("Accès MetaMask refusé, passage au provider local");
-        }
-        signer = await provider.getSigner();
-    } else {
-        // pas de MetaMask : on se rabat sur un provider JSON-RPC local
-        console.log("MetaMask non détecté, utilisation du provider local http://127.0.0.1:8545");
-        provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-        signer = provider.getSigner(); // renvoie le premier compte du nœud Hardhat
-    }
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
 
-    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    console.log("Contrat connecté :", contract.target);
-    await loadTasks();
+  const response = await fetch("../artifacts/contracts/TaskManager.sol/TaskManager.json");
+  const data = await response.json();
+
+  contract = new ethers.Contract(CONTRACT_ADDRESS, data.abi, signer);
+
+  loadTasks();
 }
 
 async function loadTasks() {
-    const taskCount = await contract.taskCount();
-    const tasksList = document.getElementById("tasksList");
-    tasksList.innerHTML = "";
+  const taskList = document.getElementById("taskList");
+  taskList.innerHTML = "";
 
-    for (let i = 1; i <= taskCount; i++) {
-        const task = await contract.tasks(i);
-        const li = document.createElement("li");
-        li.textContent = task.content;
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = task.completed;
-        checkbox.onclick = () => toggleTask(i);
-        li.prepend(checkbox);
-        tasksList.appendChild(li);
-    }
+  const count = await contract.taskCount();
+
+  for (let i = 1; i <= count; i++) {
+    const task = await contract.tasks(i);
+
+    const li = document.createElement("li");
+    if (task.completed) li.classList.add("completed");
+
+    li.innerHTML = `
+      ${task.content}
+      <input type="checkbox" ${task.completed ? "checked" : ""} 
+        onchange="toggleTask(${task.id})">
+    `;
+
+    taskList.appendChild(li);
+  }
 }
 
-async function createTask(content) {
-    try {
-        statusEl.textContent = "Transaction en cours…";
-        const tx = await contract.createTask(content);
-        await tx.wait();
-        statusEl.textContent = "Tâche créée !";
-        await loadTasks();
-    } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Erreur lors de la création de la tâche.";
-    }
+async function createTask() {
+  const input = document.getElementById("taskInput");
+  const status = document.getElementById("status");
+
+  if (!input.value) return;
+
+  status.innerText = "Transaction en cours...";
+
+  const tx = await contract.createTask(input.value);
+  await tx.wait();
+
+  status.innerText = "Tâche ajoutée ✅";
+  input.value = "";
+  loadTasks();
 }
 
 async function toggleTask(id) {
-    try {
-        statusEl.textContent = "Transaction en cours…";
-        const tx = await contract.toggleCompleted(id);
-        await tx.wait();
-        statusEl.textContent = "Tâche mise à jour !";
-        await loadTasks();
-    } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Erreur lors du toggle de la tâche.";
-    }
-}
+  const status = document.getElementById("status");
+  status.innerText = "Transaction en cours...";
 
-document.getElementById("addTaskBtn").onclick = () => {
-    const input = document.getElementById("taskInput");
-    if (input.value.trim()) {
-        createTask(input.value.trim());
-        input.value = "";
-    }
-};
+  const tx = await contract.toggleCompleted(id);
+  await tx.wait();
+
+  status.innerText = "Statut mis à jour ✅";
+  loadTasks();
+}
 
 init();

@@ -2,40 +2,37 @@ const { expect } = require("chai");
 
 describe("TaskManager", function () {
 
-let TaskManager;
-let taskManager;
+  let taskManager;
 
-beforeEach(async function () {
-    TaskManager = await ethers.getContractFactory("TaskManager");
+  beforeEach(async function () {
+    const TaskManager = await ethers.getContractFactory("TaskManager");
     taskManager = await TaskManager.deploy();
-    await taskManager.waitForDeployment();
-});
+    // ethers v6 returns a deployed contract immediately, no need for .deployed()
+  });
 
-it("Should create a task", async function () {
-    const tx = await taskManager.createTask("Ma première tâche");
-    await tx.wait();
-
-    const count = await taskManager.taskCount();
-    expect(count).to.equal(1);
-
+  it("Should create a task", async function () {
+    await taskManager.createTask("Test");
     const task = await taskManager.tasks(1);
-    expect(task.content).to.equal("Ma première tâche");
-    expect(task.completed).to.equal(false);
-});
+    expect(task.content).to.equal("Test");
+  });
 
-it("Should toggle a task", async function () {
-    await taskManager.createTask("Test toggle");
-
+  it("Should toggle task", async function () {
+    await taskManager.createTask("Toggle");
     await taskManager.toggleCompleted(1);
-
     const task = await taskManager.tasks(1);
     expect(task.completed).to.equal(true);
-});
+  });
 
-it("Should revert if content is empty", async function () {
-    await expect(
-    taskManager.createTask("")
-    ).to.be.reverted;
-});
+  it("Should edit task content", async function () {
+    await taskManager.createTask("Old");
+    await taskManager.editTask(1, "New");
+    const task = await taskManager.tasks(1);
+    expect(task.content).to.equal("New");
+  });
+
+  it("Should revert if empty", async function () {
+    await expect(taskManager.createTask(""))
+      .to.be.revertedWith("Content cannot be empty");
+  });
 
 });

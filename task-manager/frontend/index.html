@@ -2,23 +2,26 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Task Manager</title>
+<title>Task Manager dApp</title>
 <link rel="stylesheet" href="style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+<script defer src="./config.js"></script>
 </head>
 <body>
+
 <div class="container">
-    <h1>Task Manager</h1>
+  <h1>📝 Task Manager</h1>
 
-    <div class="form">
-    <input type="text" id="taskInput" placeholder="Nouvelle tâche">
-    <button id="addTaskBtn">Ajouter</button>
-    </div>
+  <div class="card">
+    <input type="text" id="taskInput" placeholder="Ajouter une nouvelle tâche..." />
+    <button onclick="createTask()">Ajouter</button>
+  </div>
 
-    <p id="status"></p>
+  <div id="status"></div>
 
-    <ul id="tasksList"></ul>
+  <ul id="taskList"></ul>
 </div>
 
-<script type="module" src="app.js"></script>
+<script defer src="app.js"></script>
 </body>
 </html>
